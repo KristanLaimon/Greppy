@@ -1,0 +1,39 @@
+El problema es que estás mezclando dos formas distintas de manejar errores en Rust.
+
+El método unwrap_or_else espera que lo que hay "dentro" de la caja sea un error descriptivo (como un Result), pero args.get(1) devuelve un Option.
+
+1. El error técnico
+args.get(1) devuelve un Option<&String>. Los Option solo pueden ser dos cosas: Algo (Some) o Nada (None). Como no hay un "mensaje de error" técnico (simplemente no hay nada), la función dentro de unwrap_or_else no recibe ningún argumento.
+
+Tu código falla porque le pusiste |error|, y Rust te dice: "Oye, aquí no hay ningún error que pasarle a esta función, la caja simplemente está vacía".
+
+2. La solución
+Si quieres cerrar el programa elegantemente cuando no haya argumentos, tienes dos caminos:
+
+Opción A: Usar una clausura vacía ||
+Simplemente quita la palabra error de los pipes.
+
+Rust
+let text_to_search = args.get(1).unwrap_or_else(|| {
+    eprintln!("Error: No se proporcionó un patrón de búsqueda.");
+    std::process::exit(1);
+});
+Opción B: Usar match (Más legible para principiantes)
+Es la forma más explícita de "abrir el paquete":
+
+Rust
+let text_to_search = match args.get(1) {
+    Some(patron) => patron,
+    None => {
+        eprintln!("Uso: cargo run <patron>");
+        std::process::exit(1);
+    }
+};
+Resumen rápido
+Option (get): Solo puede ser Some o None. La clausura es ||.
+
+Result (operaciones de archivos, red): Puede ser Ok o Err. La clausura es |e|.
+
+Como estás usando get(), no hay objeto de error que recibir, por eso el compilador se queja de los tipos.
+
+¿Ya lograste que el programa filtre las líneas que entran por el echo?
