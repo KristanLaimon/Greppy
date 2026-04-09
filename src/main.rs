@@ -1,4 +1,8 @@
-use std::{env, io, io::BufRead, process};
+use std::{env, io, io::BufRead};
+mod color;
+
+mod config;
+use config::Config;
 
 fn main()  {
     let args: Vec<String> = env::args().collect();
@@ -9,15 +13,18 @@ fn main()  {
     for line in stdin.lock().lines().into_iter(){
         match line {
             Ok(line) => {
-                let is_match : bool = if config.case_insensitive {
-                    line.to_lowercase().contains(&config.text_to_search)
-                }else {
-                    line.contains(&config.text_to_search)
+                let lower_line = line.to_lowercase();
+                let msg_to_show: Option<String>; 
+
+                if config.case_insensitive {
+                    msg_to_show = format_searched_line(&line, &lower_line, &config.text_to_search, color::GREEN);
+                }else{
+                    msg_to_show = format_searched_line(&line, &line, &config.text_to_search, color::GREEN);
                 };
 
-                if is_match {
+                if let Some(msg) = msg_to_show {
                     i += 1;
-                    println!("{}.  {}", i, line)
+                    println!("{}. {}", i, msg);
                 }
             }
             Err(e) => {
@@ -25,38 +32,20 @@ fn main()  {
             }
         }
     }
-       
 }
 
-mod Colors {
-    pub const RED: &'static str = "\x1b[31m";
-    pub const GREEN: &'static str = "\x1b[32m";
-    pub const RESET: &'static str = "\x1b[0m";
-}
+fn format_searched_line(original_line: &String, search_line: &String, search_word:&String, color: &'static str) -> Option<String>{
+    if let Some(index_at_first_letter) = search_line.find(search_word){
+        let after_word_index  = index_at_first_letter + search_word.len();
 
-struct Config {
-     text_to_search: String,
-     case_insensitive: bool
-}
+        let before_word_content = &original_line[..index_at_first_letter];
+        let word = &original_line[index_at_first_letter..after_word_index];
+        let after_word_content = &original_line[after_word_index..];
 
-impl Config {
-    fn new(args:&[String]) -> Config {
-        let mut case_insensitive = false;
-        let mut pattern: Option<String> = None;
-
-        for arg in args.iter().skip(1) {
-            if arg == "-i" {
-                case_insensitive = true;
-            }else if pattern.is_none(){
-                pattern = if case_insensitive { Some(arg.to_lowercase()) } else { Some(arg.clone()) };
-            }
-        }
-        
-        let text_to_search = pattern.unwrap_or_else(|| {
-            eprintln!("Usage: greppy <pattern>");
-            process::exit(1);
-        });
-
-        Config { text_to_search, case_insensitive }
+        Some(format!("{}{}{}{}{}", before_word_content, color, word, color::RESET, after_word_content))
+    }else{
+        None
     }
 }
+
+

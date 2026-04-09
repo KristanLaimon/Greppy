@@ -3,5 +3,5 @@
 version = 4
 
 [[package]]
-name = "test_rust"
+name = "greptoy"
 version = "0.1.0"
